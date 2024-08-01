@@ -35,8 +35,7 @@ public class AuthService {
         );
 
         String accessToken = jwtService.generateAccessToken(username);
-        String refreshToken = jwtService.generateRefreshToken(username);
-        return new AuthResponse(accessToken, refreshToken);
+        return new AuthResponse(accessToken);
     }
 
     public AuthResponse registerUser(SignupRequest signupRequest) {
@@ -53,7 +52,6 @@ public class AuthService {
         userRepository.save(user);
 
         String accessToken = jwtService.generateAccessToken(user.getUsername());
-        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
-        return new AuthResponse(accessToken, refreshToken);
+        return new AuthResponse(accessToken);
     }
 }
