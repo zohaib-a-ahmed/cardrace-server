@@ -11,6 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.cardrace.cardrace_server.exceptions.UsernameTakenException;
+import org.springframework.security.authentication.BadCredentialsException;
+import com.cardrace.cardrace_server.exceptions.InvalidCredentialsException;
 
 import java.util.UUID;
 
@@ -30,12 +32,16 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
 
     public AuthResponse authenticate(String username, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
 
-        String accessToken = jwtService.generateAccessToken(username);
-        return new AuthResponse(accessToken);
+            String accessToken = jwtService.generateAccessToken(username);
+            return new AuthResponse(accessToken);
+        } catch (BadCredentialsException e){
+            throw new InvalidCredentialsException("Invalid username or password");
+        }
     }
 
     public AuthResponse registerUser(SignupRequest signupRequest) {
