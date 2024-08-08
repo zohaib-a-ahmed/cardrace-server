@@ -50,6 +50,29 @@ public class UserRepository {
         }
         return Optional.of(users.get(0));
     }
+    public void incrementGamesPlayed(String userId) {
+        User user = dynamoDBMapper.load(User.class, userId);
+        if (user != null) {
+            user.setGamesPlayed(user.getGamesPlayed() + 1);
+            dynamoDBMapper.save(user);
+        }
+    }
+
+    public void incrementWins(String userId) {
+        User user = dynamoDBMapper.load(User.class, userId);
+        if (user != null) {
+            user.setWins(user.getWins() + 1);
+            dynamoDBMapper.save(user);
+        }
+    }
+
+    public void incrementTurns(String userId, int turnsTaken) {
+        User user = dynamoDBMapper.load(User.class, userId);
+        if (user != null) {
+            user.setTurns(user.getTurns() + turnsTaken);
+            dynamoDBMapper.save(user);
+        }
+    }
 
     public void delete(User user) {
         dynamoDBMapper.delete(user);

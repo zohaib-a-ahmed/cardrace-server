@@ -16,6 +16,15 @@ public class User {
     @DynamoDBAttribute
     private String password;
 
+    @DynamoDBAttribute
+    private int gamesPlayed;
+
+    @DynamoDBAttribute
+    private int wins;
+
+    @DynamoDBAttribute
+    private int turns;
+
     // Default constructor
     public User() {}
 
@@ -24,6 +33,9 @@ public class User {
         this.id = id;
         this.username = username;
         this.password = password;
+        this.gamesPlayed = 0;
+        this.wins = 0;
+        this.turns = 0;
     }
 
     // Getters and Setters
@@ -53,5 +65,32 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    @DynamoDBAttribute
+    public int getGamesPlayed() {
+        return gamesPlayed;
+    }
+
+    public void setGamesPlayed(int gamesPlayed) {
+        this.gamesPlayed = gamesPlayed;
+    }
+
+    @DynamoDBAttribute
+    public int getWins() {
+        return wins;
+    }
+
+    public void setWins(int wins) {
+        this.wins = wins;
+    }
+
+    @DynamoDBAttribute
+    public int getTurns() {
+        return turns;
+    }
+
+    public void setTurns(int turns) {
+        this.turns = turns;
     }
 }
