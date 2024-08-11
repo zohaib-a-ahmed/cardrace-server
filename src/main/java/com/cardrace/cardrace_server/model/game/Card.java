@@ -1,19 +1,10 @@
 package com.cardrace.cardrace_server.model.game;
 
-public class PlayingCard {
+public class Card {
+    public final Types.CardValue cardValue;
+    public final Types.CardSuit cardSuit;
 
-    public enum Suit {
-        HEARTS, DIAMONDS, CLUBS, SPADES
-    }
-
-    public enum Value {
-        TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE
-    }
-
-    public final Value cardValue;
-    public final Suit cardSuit;
-
-    public PlayingCard(Value value, Suit suit) {
+    public Card(Types.CardValue value, Types.CardSuit suit) {
         this.cardValue = value;
         this.cardSuit = suit;
     }
@@ -22,7 +13,7 @@ public class PlayingCard {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        PlayingCard that = (PlayingCard) obj;
+        Card that = (Card) obj;
         return cardValue.equals(that.cardValue) && cardSuit.equals(that.cardSuit);
     }
 
@@ -36,4 +27,3 @@ public class PlayingCard {
         return cardValue + " of " + cardSuit;
     }
 }
-

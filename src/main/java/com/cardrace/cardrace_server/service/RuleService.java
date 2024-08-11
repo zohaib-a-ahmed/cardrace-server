@@ -1,2 +1,6 @@
-package com.cardrace.cardrace_server.service;public class RuleService {
+package com.cardrace.cardrace_server.service;
+
+public class RuleService {
+
+
 }

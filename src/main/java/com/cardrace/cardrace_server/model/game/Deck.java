@@ -5,33 +5,39 @@ import java.util.Random;
 
 public class Deck {
 
-    private static final PlayingCard.Suit[] SUITS = {
-            PlayingCard.Suit.HEARTS,
-            PlayingCard.Suit.DIAMONDS,
-            PlayingCard.Suit.CLUBS,
-            PlayingCard.Suit.SPADES
+    private static final Types.CardSuit[] SUITS = {
+            Types.CardSuit.HEARTS,
+            Types.CardSuit.DIAMONDS,
+            Types.CardSuit.CLUBS,
+            Types.CardSuit.SPADES
     };
 
-    private static final PlayingCard.Value[] VALUES = {
-            PlayingCard.Value.TWO,
-            PlayingCard.Value.THREE,
-            PlayingCard.Value.FOUR,
-            PlayingCard.Value.FIVE,
-            PlayingCard.Value.SIX,
-            PlayingCard.Value.SEVEN,
-            PlayingCard.Value.EIGHT,
-            PlayingCard.Value.NINE,
-            PlayingCard.Value.TEN,
-            PlayingCard.Value.JACK,
-            PlayingCard.Value.QUEEN,
-            PlayingCard.Value.KING,
-            PlayingCard.Value.ACE
+    private static final Types.CardValue[] VALUES = {
+            Types.CardValue.TWO,
+            Types.CardValue.THREE,
+            Types.CardValue.FOUR,
+            Types.CardValue.FIVE,
+            Types.CardValue.SIX,
+            Types.CardValue.SEVEN,
+            Types.CardValue.EIGHT,
+            Types.CardValue.NINE,
+            Types.CardValue.TEN,
+            Types.CardValue.JACK,
+            Types.CardValue.QUEEN,
+            Types.CardValue.KING,
+            Types.CardValue.ACE
     };
 
     private int numDecks;
-    private Stack<PlayingCard> playingDeck;
+    private Stack<Card> playingDeck;
     private Random random;
 
+    /**
+     * Constructs a new Deck with the specified number of standard decks.
+     * Initializes and shuffles the playing deck.
+     *
+     * @param numDecks The number of standard 52-card decks to include
+     */
     public Deck(int numDecks) {
         this.numDecks = numDecks;
         this.playingDeck = new Stack<>();
@@ -39,22 +45,35 @@ public class Deck {
         shuffle();
     }
 
+    /**
+     * Shuffles the deck by clearing it, adding all cards (including Jokers),
+     * and then randomly shuffling the order.
+     */
     public void shuffle() {
         playingDeck.clear();
 
         for (int i = 0; i < numDecks; i++) {
-            for (PlayingCard.Suit suit : SUITS) {
-                for (PlayingCard.Value value : VALUES) {
-                    playingDeck.push(new PlayingCard(value, suit));
+            for (Types.CardSuit suit : SUITS) {
+                for (Types.CardValue value : VALUES) {
+                    playingDeck.push(new Card(value, suit));
                 }
             }
         }
+        playingDeck.push(new Card(Types.CardValue.JOKER, Types.CardSuit.JOKER));
+        playingDeck.push(new Card(Types.CardValue.JOKER, Types.CardSuit.JOKER));
 
         Collections.shuffle(playingDeck, random);
     }
 
-    public PlayingHand dealHand(int handSize) {
-        PlayingHand hand = new PlayingHand(handSize);
+    /**
+     * Deals a hand of cards from the deck.
+     * If the deck is empty, it reshuffles before dealing.
+     *
+     * @param handSize The number of cards to deal
+     * @return A new Hand object containing the dealt cards
+     */
+    public Hand dealHand(int handSize) {
+        Hand hand = new Hand(handSize);
         if (playingDeck.isEmpty()) {
             shuffle();
         }
