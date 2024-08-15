@@ -1,6 +1,8 @@
 package com.cardrace.cardrace_server.model.game;
 
 import com.amazonaws.services.dynamodbv2.xspec.M;
+import com.cardrace.cardrace_server.dto.GameStateDTO;
+import com.cardrace.cardrace_server.dto.PlayerStateDTO;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 import com.cardrace.cardrace_server.exceptions.PlayerLimitException;
 
@@ -19,6 +21,7 @@ public class Game {
     private int currentPlayerIndex;
     private Types.GameStatus status;
     private Card lastCard;
+    private String winner;
 
     /**
      * Constructs a new Game with the specified name and number of players.
@@ -54,7 +57,7 @@ public class Game {
         );
         Collections.shuffle(colorList);
 
-        this.deck = new Deck(2);
+
         List<Types.Color> colors = new ArrayList<Types.Color>();
 
         for (int pos = 0; pos < players.size(); pos++) {
@@ -62,14 +65,14 @@ public class Game {
             Types.Color color = colorList.get(pos);
 
             playerColorMap.put(player, color);
-            colorHandMap.put(color, deck.dealHand(handSize));
             colors.add(color);
         }
-
+        this.deck = new Deck(2);
         this.board = new Board(colors);
         this.status = Types.GameStatus.IN_PROGRESS;
         this.currentPlayerIndex = 0;
-        this.handSize--;
+        this.handSize = 6;
+        dealOut();
     }
 
     /**
@@ -85,10 +88,6 @@ public class Game {
         }
 
         players.add(username);
-
-        if (players.size() == numPlayers) {
-            initializeGame();
-        }
     }
 
     /**
@@ -98,7 +97,7 @@ public class Game {
      * @return Boolean of whether player has won.
      */
     public boolean hasWon(String username) {
-        Types.Color playerColor = playerColorMap.get(username);
+        Types.Color playerColor = getPlayerColor(username);
         Marble[] safeZone = board.getSafeZone(playerColor);
 
         return Arrays.stream(safeZone).noneMatch(Objects::isNull);
@@ -111,15 +110,29 @@ public class Game {
      * @param card Card used.
      */
     public void updatePlayerHand(String username, Card card) {
-
-        Types.Color playerColor = playerColorMap.get(username);
-        Hand playerHand = colorHandMap.get(playerColor);
+        Hand playerHand = getPlayerHand(username);
         playerHand.removeCard(card);
+    }
 
-        if (playerHand.getNumCards() == 0) {
-            deck.dealHand(handSize);
-            if (Objects.equals(username, players.get(numPlayers - 1))) { cycleHandSize(); }
+    /**
+     * Check if all player hands are empty and deal if so.
+     */
+    public boolean timeToDeal() {
+        return players.stream()
+                .map(playerColorMap::get)
+                .map(colorHandMap::get)
+                .allMatch(hand -> hand.getNumCards() == 0);
+    }
+
+    /**
+     * Deal out hands to each player of size handSize.
+     */
+    public void dealOut() {
+        for (String player : players) {
+            Types.Color playerColor = getPlayerColor(player);
+            colorHandMap.put(playerColor, deck.dealHand(handSize));
         }
+        cycleHandSize();
     }
 
     /**
@@ -159,6 +172,17 @@ public class Game {
     }
 
     /**
+     * Forfeit cards of hand
+     *
+     * @param username Player who forfeits cards.
+     */
+    public void clearHand(String username) {
+        Hand playerHand = getPlayerHand(username);
+        playerHand.forfeitCards();
+
+    }
+
+    /**
      * Update player turn by order of join.
      */
     public void nextTurn() {
@@ -178,12 +202,16 @@ public class Game {
     /**
      * Getters/Setters
      */
+    public Hand getPlayerHand(String username) { return colorHandMap.get(getPlayerColor(username)); }
+    public Types.Color getPlayerColor(String username) { return playerColorMap.get(username); }
+    public Board getBoard() { return board; }
+    public List<String> getPlayers() { return players; }
     public Types.GameStatus getStatus() { return status; }
     public void setStatus(Types.GameStatus status) { this.status = status; }
-    public void setLastCard(Card lastCard) {
-        this.lastCard = lastCard;
-    }
-    public Card getLastCard() {
-        return lastCard;
-    }
+    public void setLastCard(Card lastCard) { this.lastCard = lastCard; }
+    public Card getLastCard() { return lastCard; }
+    public Types.Color getCurrentPlayerColor() { return playerColorMap.get(players.get(currentPlayerIndex)); }
+    public void setWinner(String winner) { this.winner = winner; }
+    public String getWinner() { return winner; }
+    public int getNumCurrPlayers() { return players.size(); }
 }

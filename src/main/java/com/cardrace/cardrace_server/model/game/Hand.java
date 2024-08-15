@@ -6,7 +6,7 @@ import java.util.NoSuchElementException;
 
 public class Hand {
 
-    private final List<Card> cards;
+    private List<Card> cards;
 
     /**
      * Constructs a new Hand with the specified initial size.
@@ -38,6 +38,13 @@ public class Hand {
         } else {
             throw new NoSuchElementException("Card not found in hand");
         }
+    }
+
+    /**
+     * Clear hand if cards are forfeited.
+     */
+    public void forfeitCards() {
+        this.cards = new ArrayList<Card>();
     }
 
     /**
