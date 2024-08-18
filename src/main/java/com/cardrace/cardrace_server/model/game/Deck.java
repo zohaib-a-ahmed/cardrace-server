@@ -92,7 +92,6 @@ public class Deck {
                 hand.addCard(playingDeck.pop());
             }
         }
-        logger.info(playingDeck.toString());
         return hand;
     }
 }
