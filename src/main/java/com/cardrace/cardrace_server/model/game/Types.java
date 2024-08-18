@@ -20,7 +20,7 @@ public final class Types {
     public enum Color { RED, BLUE, GREEN, YELLOW, PURPLE, ORANGE }
 
     public enum GameStatus {
-        WAITING, IN_PROGRESS, COMPLETE
+        WAITING, IN_PROGRESS, COMPLETE, TERMINATED
     }
 
 }

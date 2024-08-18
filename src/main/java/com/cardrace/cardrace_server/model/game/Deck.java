@@ -3,7 +3,13 @@ import java.util.Stack;
 import java.util.Collections;
 import java.util.Random;
 
+import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Deck {
+
+    private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
 
     private static final Types.CardSuit[] SUITS = {
             Types.CardSuit.HEARTS,
@@ -86,7 +92,7 @@ public class Deck {
                 hand.addCard(playingDeck.pop());
             }
         }
-
+        logger.info(playingDeck.toString());
         return hand;
     }
 }

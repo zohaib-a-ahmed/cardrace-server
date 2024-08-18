@@ -1,8 +1,5 @@
 package com.cardrace.cardrace_server.model.game;
 
-import com.amazonaws.services.dynamodbv2.xspec.M;
-import com.cardrace.cardrace_server.dto.GameStateDTO;
-import com.cardrace.cardrace_server.dto.PlayerStateDTO;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 import com.cardrace.cardrace_server.exceptions.PlayerLimitException;
 
@@ -169,6 +166,9 @@ public class Game {
                 }
             }
         }
+        for (Marble marble : marbleList) {
+            marble.setState(Types.MarbleState.UNPROTECTED);
+        }
     }
 
     /**
@@ -214,4 +214,5 @@ public class Game {
     public void setWinner(String winner) { this.winner = winner; }
     public String getWinner() { return winner; }
     public int getNumCurrPlayers() { return players.size(); }
+    public Map<String, Types.Color> getPlayerColorMap() { return playerColorMap; }
 }

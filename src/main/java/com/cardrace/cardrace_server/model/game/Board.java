@@ -6,10 +6,10 @@ import java.util.*;
 
 public class Board {
 
-    private final Marble[] spaces;
-    private final Map<Types.Color, Marble[]> safeZones;
-    private final Map<Types.Color, List<Marble>> reserves;
-    private final Map<Types.Color, Integer> startPositions;
+    public final Marble[] spaces;
+    public final Map<Types.Color, Marble[]> safeZones;
+    public final Map<Types.Color, List<Marble>> reserves;
+    public final Map<Types.Color, Integer> startPositions;
     private final int boardSize;
 
     /**
