@@ -1,10 +1,13 @@
 package com.cardrace.cardrace_server.model.game;
 
+import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 import com.cardrace.cardrace_server.exceptions.PlayerLimitException;
 
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public class Game {
 
     public final String gameName;
@@ -14,6 +17,7 @@ public class Game {
     private final List<String> players;
     private final Map<Types.Color, Hand> colorHandMap;
     private int handSize;
+    private final int maxHandSize;
     private Deck deck;
     private int currentPlayerIndex;
     private Types.GameStatus status;
@@ -35,7 +39,7 @@ public class Game {
         this.colorHandMap = new EnumMap<>(Types.Color.class);
 
         this.status = Types.GameStatus.WAITING;
-        this.handSize = 6;
+        this.maxHandSize = Types.getHandSize(numPlayers);
     }
 
     /**
@@ -68,7 +72,7 @@ public class Game {
         this.board = new Board(colors);
         this.status = Types.GameStatus.IN_PROGRESS;
         this.currentPlayerIndex = 0;
-        this.handSize = 6;
+        this.handSize = maxHandSize;
         dealOut();
     }
 
@@ -88,6 +92,13 @@ public class Game {
     }
 
     /**
+     * Remove player from game.
+     */
+    public void removePlayer(String username) {
+        players.remove(username);
+    }
+
+    /**
      * Check win condition via seeing if a given player's safeZone is filled. Return boolean win.
      *
      * @param username The player who we want to see if won.
@@ -95,11 +106,10 @@ public class Game {
      */
     public boolean hasWon(String username) {
         Types.Color playerColor = getPlayerColor(username);
-        Marble[] safeZone = board.getSafeZone(playerColor);
+        Integer[] safeZone = board.getSafeZone(playerColor);
 
         return Arrays.stream(safeZone).noneMatch(Objects::isNull);
     }
-
     /**
      * Update player hand after playing a card. Re-deal if necessary and cycle handSize after all players are dealt.
      *
@@ -139,36 +149,41 @@ public class Game {
      * @param substitute Subbed card if Joker is used.
      * @param distances Ordered marble to distance mapping.
      */
-    public void applyMove(Card card, Card substitute, LinkedHashMap<Marble, Integer> distances) throws IllegalMoveException {
+    public void applyMove(Card card, Card substitute, Map<Integer, Integer> distances) throws IllegalMoveException {
         Card actingCard = (card.cardValue == Types.CardValue.JOKER) ? substitute : card;
-        List<Marble> marbleList = new ArrayList<>(distances.keySet());
+        List<Integer> marbleList = new ArrayList<>(distances.keySet());
 
-        switch (actingCard.cardValue) {
-            case JACK -> {
-                board.swapMarble(marbleList.get(0), marbleList.get(1));
-            }
-            case ACE, KING -> {
-                Marble marble = marbleList.get(0);
-                if (board.inReserve(marble)) {
-                    board.activateMarble(marble);
-                } else {
-                    board.moveMarble(marble, distances.get(marble), false);
+        try {
+            switch (actingCard.cardValue) {
+                case JACK -> {
+                    board.swapMarble(marbleList.get(0), marbleList.get(1));
+                }
+                case ACE, KING -> {
+                    int marbleId = marbleList.get(0);
+                    if (board.inReserve(marbleId)) {
+                        board.activateMarble(marbleId);
+                    } else {
+                        board.moveMarble(marbleId, distances.get(marbleId), false);
+                    }
+                }
+                case SEVEN -> {
+                    for (Map.Entry<Integer, Integer> entry : distances.entrySet()) {
+                        board.moveMarble(entry.getKey(), entry.getValue(), true);
+                    }
+                }
+                default -> {
+                    for (Map.Entry<Integer, Integer> entry : distances.entrySet()) {
+                        board.moveMarble(entry.getKey(), entry.getValue(), false);
+                    }
                 }
             }
-            case SEVEN -> {
-                for (Map.Entry<Marble, Integer> entry : distances.entrySet()) {
-                    board.moveMarble(entry.getKey(), entry.getValue(), true);
-                }
+            for (int marbleId : marbleList) {
+                board.getMarbles().get(marbleId).setState(Types.MarbleState.UNPROTECTED);
             }
-            default -> {
-                for (Map.Entry<Marble, Integer> entry : distances.entrySet()) {
-                    board.moveMarble(entry.getKey(), entry.getValue(), false);
-                }
-            }
+        } catch (Exception e) {
+            throw new IllegalMoveException("Illegal Move!");
         }
-        for (Marble marble : marbleList) {
-            marble.setState(Types.MarbleState.UNPROTECTED);
-        }
+
     }
 
     /**
@@ -190,12 +205,12 @@ public class Game {
     }
 
     /**
-     * Cycle handSize between 2 and 6
+     * Cycle handSize between 2 and maximum hand size dependent on number of players.
      */
     public void cycleHandSize() {
         handSize--;
         if (handSize < 2) {
-            handSize = 6;
+            handSize = maxHandSize;
         }
     }
 

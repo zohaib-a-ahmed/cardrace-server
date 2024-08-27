@@ -6,144 +6,98 @@ import java.util.*;
 
 public class Board {
 
-    public final Marble[] spaces;
-    public final Map<Types.Color, Marble[]> safeZones;
-    public final Map<Types.Color, List<Marble>> reserves;
+    public final Map<Integer, Marble> marbles;
+    public final Integer[] spaces;
+    public final Map<Types.Color, Integer[]> safeZones;
+    public final Map<Types.Color, List<Integer>> reserves;
     public final Map<Types.Color, Integer> startPositions;
     private final int boardSize;
 
-    /**
-     * Constructs a new Board with the given colors.
-     * Initializes the board spaces, safe zones, reserves, and start positions.
-     *
-     * @param colors The list of colors in the game
-     */
     public Board(List<Types.Color> colors) {
         this.boardSize = colors.size() * 16;
-        this.spaces = new Marble[boardSize];
+        this.spaces = new Integer[boardSize];
         this.safeZones = new EnumMap<>(Types.Color.class);
         this.reserves = new EnumMap<>(Types.Color.class);
         this.startPositions = new EnumMap<>(Types.Color.class);
+        this.marbles = new HashMap<>();
 
         initializeBoard(colors);
     }
 
-    /**
-     * Initializes the board by setting up safe zones, reserves, and start positions for each color.
-     *
-     * @param colors The list of colors in the game
-     */
     private void initializeBoard(List<Types.Color> colors) {
         int startPosition = 0;
+        int marbleId = 0;
         for (Types.Color color : colors) {
             createSafeZone(color);
-            createReserve(color);
+            createReserve(color, marbleId);
+            marbleId += 4;
 
             startPositions.put(color, startPosition);
             startPosition += 16;
         }
     }
 
-    /**
-     * Creates a safe zone for the specified color.
-     *
-     * @param color The color for which to create a safe zone
-     */
     private void createSafeZone(Types.Color color) {
-        safeZones.put(color, new Marble[4]);
+        safeZones.put(color, new Integer[4]);
     }
 
-    /**
-     * Creates a reserve for the specified color, initializing it with four marbles.
-     *
-     * @param color The color for which to create a reserve
-     */
-    private void createReserve(Types.Color color) {
+    private void createReserve(Types.Color color, int startId) {
         Types.MarbleType[] types = {Types.MarbleType.A, Types.MarbleType.B, Types.MarbleType.C, Types.MarbleType.D};
 
-        ArrayList<Marble> reserve = new ArrayList<>();
-        for (Types.MarbleType type : types) {
-            reserve.add(new Marble(color, type, Types.MarbleState.PROTECTED));
+        ArrayList<Integer> reserve = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            int id = startId + i;
+            Marble marble = new Marble(id, color, types[i], Types.MarbleState.PROTECTED);
+            marbles.put(id, marble);
+            reserve.add(id);
         }
         reserves.put(color, reserve);
     }
 
-    /**
-     * Activates a marble by moving it from the reserve to its start position on the board.
-     * If the start position is occupied, the occupying marble is sent back to its reserve.
-     *
-     * @param marble The marble to activate
-     * @throws NoSuchElementException if the marble is not in the reserve
-     */
-    public void activateMarble(Marble marble) {
+    public void activateMarble(int marbleId) {
+        Marble marble = marbles.get(marbleId);
         Types.Color marbleColor = marble.getColor();
 
-        List<Marble> reserveMarbles = reserves.get(marbleColor);
-        if (!reserveMarbles.contains(marble)) {
+        List<Integer> reserveMarbles = reserves.get(marbleColor);
+        if (!reserveMarbles.contains(marbleId)) {
             throw new NoSuchElementException("Marble not in reserve!");
         }
-        reserveMarbles.remove(marble);
+        reserveMarbles.remove(Integer.valueOf(marbleId));
         int startPos = startPositions.get(marbleColor);
         if (spaces[startPos] != null) {
-            Marble tenant = spaces[startPos];
-            sendToReserve(tenant);
+            Integer tenantId = spaces[startPos];
+            sendToReserve(tenantId);
         }
-        spaces[startPos] = marble;
+        spaces[startPos] = marbleId;
     }
 
-    /**
-     * Finds the position of a marble on the board.
-     *
-     * @param marble The marble to find
-     * @return The index of the marble in the spaces array
-     * @throws NoSuchElementException if the marble is not on the board
-     */
-    public int findMarble(Marble marble) throws NoSuchElementException {
+    public int findMarble(int marbleId) throws NoSuchElementException {
         for (int i = 0; i < boardSize; i++) {
-            if (spaces[i] == marble) {
+            if (spaces[i] != null && spaces[i].equals(marbleId)) {
                 return i;
             }
         }
         throw new NoSuchElementException("Marble not in play!");
     }
 
-    /**
-     * Check if marble is in reserve
-     *
-     * @param marble Marble to be checked.
-     */
-    public boolean inReserve(Marble marble) {
+    public boolean inReserve(int marbleId) {
+        Marble marble = marbles.get(marbleId);
         Types.Color marbleColor = marble.getColor();
 
-        List<Marble> reserve = reserves.get(marbleColor);
-        return reserve.contains(marble);
+        List<Integer> reserve = reserves.get(marbleColor);
+        return reserve.contains(marbleId);
     }
 
-    /**
-     * Swaps the positions of two marbles on the board.
-     *
-     * @param source The first marble to swap
-     * @param target The second marble to swap
-     * @throws IllegalMoveException if either marble is not on the board
-     */
-    public void swapMarble(Marble source, Marble target) throws IllegalMoveException {
-        int pos1 = findMarble(source);
-        int pos2 = findMarble(target);
+    public void swapMarble(int sourceId, int targetId) throws IllegalMoveException {
+        int pos1 = findMarble(sourceId);
+        int pos2 = findMarble(targetId);
 
-        spaces[pos1] = target;
-        spaces[pos2] = source;
+        spaces[pos1] = targetId;
+        spaces[pos2] = sourceId;
     }
 
-    /**
-     * Moves a marble the given distance, handling collisions, safeZones, and bully status.
-     *
-     * @param marble The marble to move
-     * @param distance The distance to move the marble
-     * @param bully Whether this is a bully move (e.g., for a 7 card)
-     * @throws IllegalMoveException if the move is invalid (e.g., landing on a protected marble)
-     */
-    public void moveMarble(Marble marble, int distance, boolean bully) throws IllegalMoveException {
-        int startPosition = findMarble(marble);
+    public void moveMarble(int marbleId, int distance, boolean bully) throws IllegalMoveException {
+        int startPosition = findMarble(marbleId);
         int currentPosition = startPosition;
         int remainingDistance = Math.abs(distance);
         boolean movingBackwards = distance < 0;
@@ -156,55 +110,51 @@ public class Board {
             }
             remainingDistance--;
 
+            Marble marble = marbles.get(marbleId);
             if (!movingBackwards && currentPosition == startPositions.get(marble.getColor())) {
                 int safeZonePosition = remainingDistance - 1;
-                Marble[] safeZone = safeZones.get(marble.getColor());
+                Integer[] safeZone = safeZones.get(marble.getColor());
                 if (safeZonePosition < 4 && safeZone[safeZonePosition] == null) {
                     spaces[startPosition] = null;
-                    safeZone[safeZonePosition] = marble;
+                    safeZone[safeZonePosition] = marbleId;
                     return;
                 }
             }
 
-            Marble occupyingMarble = spaces[currentPosition];
-            if (occupyingMarble != null) {
+            Integer occupyingMarbleId = spaces[currentPosition];
+            if (occupyingMarbleId != null) {
+                Marble occupyingMarble = marbles.get(occupyingMarbleId);
                 if (bully && occupyingMarble.getState() != Types.MarbleState.PROTECTED) {
-                    sendToReserve(occupyingMarble);
+                    sendToReserve(occupyingMarbleId);
                     spaces[currentPosition] = null;
                 }
             }
         }
 
-        Marble landingMarble = spaces[currentPosition];
-        if (landingMarble != null) {
+        Integer landingMarbleId = spaces[currentPosition];
+        if (landingMarbleId != null) {
+            Marble landingMarble = marbles.get(landingMarbleId);
             if (landingMarble.getState() == Types.MarbleState.PROTECTED) {
                 throw new IllegalMoveException("Cannot land on a protected marble");
             } else {
-                sendToReserve(landingMarble);
+                sendToReserve(landingMarbleId);
             }
         }
 
         spaces[startPosition] = null;
-        spaces[currentPosition] = marble;
+        spaces[currentPosition] = marbleId;
     }
 
-    /**
-     * Sends a marble back to its reserve.
-     *
-     * @param marble The marble to send to reserve
-     */
-    private void sendToReserve(Marble marble) {
-        reserves.get(marble.getColor()).add(marble);
+    private void sendToReserve(int marbleId) {
+        Marble marble = marbles.get(marbleId);
+        reserves.get(marble.getColor()).add(marbleId);
     }
 
-    /**
-     * Retrieve a safe zone contents.
-     *
-     * @param color The color of the zone.
-     */
-    public Marble[] getSafeZone(Types.Color color) {
+    public Integer[] getSafeZone(Types.Color color) {
         return safeZones.get(color);
     }
 
+    public Map<Integer, Marble> getMarbles() {
+        return marbles;
+    }
 }
-

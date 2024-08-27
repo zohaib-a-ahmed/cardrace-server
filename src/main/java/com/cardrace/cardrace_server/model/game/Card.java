@@ -1,12 +1,18 @@
 package com.cardrace.cardrace_server.model.game;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Card {
     public final Types.CardValue cardValue;
     public final Types.CardSuit cardSuit;
 
-    public Card(Types.CardValue value, Types.CardSuit suit) {
-        this.cardValue = value;
-        this.cardSuit = suit;
+    @JsonCreator
+    public Card(
+            @JsonProperty("cardValue") Types.CardValue cardValue,
+            @JsonProperty("cardSuit") Types.CardSuit cardSuit) {
+        this.cardValue = cardValue;
+        this.cardSuit = cardSuit;
     }
 
     @Override

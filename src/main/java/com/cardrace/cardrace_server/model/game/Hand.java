@@ -44,7 +44,8 @@ public class Hand {
      * Clear hand if cards are forfeited.
      */
     public void forfeitCards() {
-        for(int i = 0; i < getNumCards(); i++) {
+        int i = 0;
+        while(i < cards.size()) {
             cards.remove(i);
         }
     }
