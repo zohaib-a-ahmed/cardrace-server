@@ -12,10 +12,7 @@ import com.cardrace.cardrace_server.repository.InMemoryGameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.Optional;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +69,8 @@ public class GameService {
         if (!move.isForfeit()) {
             if (game.getPlayerColor(move.getUsername()) == game.getCurrentPlayerColor()) {
                 game.applyMove(move.getCard(), move.getSubstitute(), move.getDistances());
+                logger.info("incrementing player turn!");
+                game.incrementPlayerTurns(move.getUsername());
                 if (game.hasWon(move.getUsername())) {
                     game.setStatus(Types.GameStatus.COMPLETE);
                     game.setWinner(move.getUsername());
@@ -82,6 +81,7 @@ public class GameService {
             } else throw new IllegalMoveException("Not player's turn!");
         } else {
             game.clearHand(move.getUsername());
+            game.setLastCard(null);
         }
         if (game.timeToDeal()) {
             game.dealOut();
@@ -159,12 +159,32 @@ public class GameService {
                 .anyMatch(player -> player.equals(playerId));
     }
 
+    public String getGameWinner(String gameId) {
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new IllegalArgumentException("Game not found"));
+        return game.getWinner();
+    }
+
     public void earlyTerminate(String gameId, String playerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
 
         game.setStatus(Types.GameStatus.TERMINATED);
         game.setWinner(playerId);
+    }
+
+    public Map<String, Integer> getPlayerTurnInformation(String gameId){
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new IllegalArgumentException("Game not found"));
+
+        logger.info("Retrieving Player Turn information!");
+        HashMap<String, Integer> turnInformation = new HashMap<>();
+        for (String player : game.getPlayers()) {
+            logger.info("{} had {} turns!", player, game.getPlayerTurns(player));
+            turnInformation.put(player, game.getPlayerTurns(player));
+        }
+
+        return turnInformation;
     }
 
     public SpecificGameStateDTO getPlayerSpecificGameState(String gameId, String playerId) {

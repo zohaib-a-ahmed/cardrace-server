@@ -8,6 +8,7 @@ import com.cardrace.cardrace_server.exceptions.PlayerLimitException;
 import com.cardrace.cardrace_server.security.RequestLoggingFilter;
 import com.cardrace.cardrace_server.service.GameService;
 import com.cardrace.cardrace_server.service.JwtService;
+import com.cardrace.cardrace_server.service.UserService;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
@@ -22,19 +23,26 @@ import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+
 @Component
 public class SocketIOEventHandler {
 
     private final SocketIOServer server;
     private final GameService gameService;
     private final JwtService jwtService;
+    private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
 
     @Autowired
-    public SocketIOEventHandler(SocketIOServer server, GameService gameService, JwtService jwtService) {
+    public SocketIOEventHandler(SocketIOServer server, GameService gameService, JwtService jwtService, UserService userService) {
         this.server = server;
         this.gameService = gameService;
         this.jwtService = jwtService;
+        this.userService = userService;
     }
 
     @PostConstruct
@@ -104,22 +112,43 @@ public class SocketIOEventHandler {
             String gameId = client.get("gameId");
             logger.info("Received move from user {} in game {}: {}", username, gameId, data.toString());
 
-            try {
-                gameService.isValidMoveStructure(data);
-            } catch (InvalidMoveFormatException e) {
-                client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
-            }
+            if (!gameService.hasCompleted(gameId)) {
+                try {
+                    gameService.isValidMoveStructure(data);
+                } catch (InvalidMoveFormatException e) {
+                    client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
+                    return;
+                }
 
-            try {
-                logger.info("attempting move!");
-                gameService.applyMove(gameId, data);
-                logger.info("move applied! broadcasting new game state.");
-                broadcastGameState(gameId);
-            } catch (IllegalMoveException e) {
-                logger.error("Error processing move", e);
-                client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
+                try {
+                    gameService.applyMove(gameId, data);
+                    if (gameService.hasCompleted(gameId)) {
+                        logger.info("Game Finished!");
+                        handlePlayerStatUpdates(gameId);
+                        logger.info("handled player stat updates!");
+                    }
+                    broadcastGameState(gameId);
+                } catch (IllegalMoveException e) {
+                    logger.error("Error processing move", e);
+                    client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
+                }
             }
         };
+    }
+
+    private void handlePlayerStatUpdates(String gameId) {
+        Map<String, Integer> turnInformation = gameService.getPlayerTurnInformation(gameId);
+        String winner = gameService.getGameWinner(gameId);
+
+        logger.info("Handling player stat update!");
+        for (Map.Entry<String, Integer> entry : turnInformation.entrySet()) {
+            String player = entry.getKey();
+
+            logger.info("doing user service stuff!");
+            userService.incrementGamesPlayed(player);
+            userService.incrementTurns(player, entry.getValue());
+            if (Objects.equals(player, winner)) { userService.incrementWins(player); }
+        }
     }
 
     private void broadcastGameState(String gameId) {

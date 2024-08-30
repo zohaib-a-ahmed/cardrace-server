@@ -58,14 +58,11 @@ public final class Types {
     }
 
     public static int getHandSize(int numPlayers) {
-        switch (numPlayers) {
-            case 2, 3:
-                return 12;
-            case 4, 5, 6:
-                return 6;
-            default:
-                return 8;
-        }
+        return switch (numPlayers) {
+            case 2, 3 -> 12;
+            case 4, 5, 6 -> 6;
+            default -> 8;
+        };
     }
 
 }

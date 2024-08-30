@@ -15,6 +15,7 @@ public class Game {
     private Board board;
     private final Map<String, Types.Color> playerColorMap;
     private final List<String> players;
+    private final Map<String, Integer> playerTurnCounter;
     private final Map<Types.Color, Hand> colorHandMap;
     private int handSize;
     private final int maxHandSize;
@@ -37,6 +38,7 @@ public class Game {
         this.players = new ArrayList<>();
         this.playerColorMap = new HashMap<>();
         this.colorHandMap = new EnumMap<>(Types.Color.class);
+        this.playerTurnCounter = new HashMap<>();
 
         this.status = Types.GameStatus.WAITING;
         this.maxHandSize = Types.getHandSize(numPlayers);
@@ -65,6 +67,7 @@ public class Game {
             String player = players.get(pos);
             Types.Color color = colorList.get(pos);
 
+            playerTurnCounter.put(player, 0);
             playerColorMap.put(player, color);
             colors.add(color);
         }
@@ -152,36 +155,44 @@ public class Game {
     public void applyMove(Card card, Card substitute, Map<Integer, Integer> distances) throws IllegalMoveException {
         Card actingCard = (card.cardValue == Types.CardValue.JOKER) ? substitute : card;
         List<Integer> marbleList = new ArrayList<>(distances.keySet());
+        boolean protect;
 
         try {
             switch (actingCard.cardValue) {
                 case JACK -> {
                     board.swapMarble(marbleList.get(0), marbleList.get(1));
+                    protect = false;
                 }
                 case ACE, KING -> {
                     int marbleId = marbleList.get(0);
                     if (board.inReserve(marbleId)) {
                         board.activateMarble(marbleId);
+                        protect = true;
                     } else {
                         board.moveMarble(marbleId, distances.get(marbleId), false);
+                        protect = false;
                     }
                 }
                 case SEVEN -> {
                     for (Map.Entry<Integer, Integer> entry : distances.entrySet()) {
                         board.moveMarble(entry.getKey(), entry.getValue(), true);
                     }
+                    protect = false;
                 }
                 default -> {
                     for (Map.Entry<Integer, Integer> entry : distances.entrySet()) {
                         board.moveMarble(entry.getKey(), entry.getValue(), false);
                     }
+                    protect = false;
                 }
             }
-            for (int marbleId : marbleList) {
-                board.getMarbles().get(marbleId).setState(Types.MarbleState.UNPROTECTED);
+            if (!protect) {
+                for (int marbleId : marbleList) {
+                    board.getMarbles().get(marbleId).setState(Types.MarbleState.UNPROTECTED);
+                }
             }
         } catch (Exception e) {
-            throw new IllegalMoveException("Illegal Move!");
+            throw new IllegalMoveException(e.getMessage());
         }
 
     }
@@ -230,4 +241,9 @@ public class Game {
     public String getWinner() { return winner; }
     public int getNumCurrPlayers() { return players.size(); }
     public Map<String, Types.Color> getPlayerColorMap() { return playerColorMap; }
+    public void incrementPlayerTurns(String username) {
+        int turns = playerTurnCounter.get(username);
+        playerTurnCounter.put(username, turns + 1);
+    }
+    public int getPlayerTurns(String username) { return playerTurnCounter.get(username); }
 }
