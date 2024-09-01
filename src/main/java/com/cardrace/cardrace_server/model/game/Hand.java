@@ -1,69 +1,57 @@
 package com.cardrace.cardrace_server.model.game;
 
+import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 public class Hand {
 
-    public final List<Card> cards;
+    private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
 
-    /**
-     * Constructs a new Hand with the specified initial size.
-     *
-     * @param size The initial size of the hand
-     */
-    public Hand(Integer size) {
+    @JsonProperty
+    private final List<Card> cards;
+
+    @JsonCreator
+    public Hand(@JsonProperty("cards") List<Card> cards) {
+        this.cards = cards != null ? cards : new ArrayList<>();
+    }
+
+    public Hand(int size) {
         this.cards = new ArrayList<>(size);
     }
 
-    /**
-     * Adds a card to the hand.
-     *
-     * @param card The card to add to the hand
-     */
     public void addCard(Card card) {
         cards.add(card);
     }
 
-    /**
-     * Removes a specific card from the hand.
-     *
-     * @param card The card to remove from the hand
-     * @throws NoSuchElementException if the card is not in the hand
-     */
     public void removeCard(Card card) {
-        if (cards.contains(card)){
-            cards.remove(card);
-        } else {
+        if (!cards.remove(card)) {
             throw new NoSuchElementException("Card not found in hand");
         }
     }
 
-    /**
-     * Clear hand if cards are forfeited.
-     */
     public void forfeitCards() {
-        int i = 0;
-        while(i < cards.size()) {
-            cards.remove(i);
-        }
+        cards.clear();
     }
 
-    /**
-     * Check number of cards within hand.
-     *
-     * @return Amount of cards within hand.
-     */
+    @JsonIgnore
     public int getNumCards() {
         return cards.size();
     }
 
+    public List<Card> getCards() {
+        return new ArrayList<>(cards);
+    }
+
     @Override
     public String toString() {
-        return "PlayingHand{" +
-                "cards=" + cards +
-                '}';
+        return "Hand{cards=" + cards + ", numCards=" + getNumCards() + '}';
     }
 }
-

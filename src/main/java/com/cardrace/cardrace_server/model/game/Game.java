@@ -6,23 +6,53 @@ import com.cardrace.cardrace_server.exceptions.PlayerLimitException;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class Game {
 
+    @JsonProperty
     public final String gameName;
+
+    @JsonProperty
     public final int numPlayers;
+
+    @JsonProperty
     private Board board;
+
+    @JsonProperty
     private final Map<String, Types.Color> playerColorMap;
+
+    @JsonProperty
     private final List<String> players;
+
+    @JsonProperty
     private final Map<String, Integer> playerTurnCounter;
+
+    @JsonProperty
     private final Map<Types.Color, Hand> colorHandMap;
+
+    @JsonProperty
     private int handSize;
+
+    @JsonProperty
     private final int maxHandSize;
+
+    @JsonProperty
     private Deck deck;
+
+    @JsonProperty
     private int currentPlayerIndex;
+
+    @JsonProperty
     private Types.GameStatus status;
+
+    @JsonProperty
     private Card lastCard;
+
+    @JsonProperty
     private String winner;
 
     /**
@@ -31,7 +61,9 @@ public class Game {
      * @param gameName The name of the game
      * @param numPlayers The number of players in the game
      */
-    public Game(String gameName, int numPlayers) {
+    @JsonCreator
+    public Game(@JsonProperty("gameName") String gameName,
+                @JsonProperty("numPlayers") int numPlayers) {
         this.gameName = gameName;
         this.numPlayers = numPlayers;
 
@@ -219,7 +251,11 @@ public class Game {
      * Cycle handSize between 2 and maximum hand size dependent on number of players.
      */
     public void cycleHandSize() {
-        handSize--;
+        if (maxHandSize == 6) {
+            handSize--;
+        } else {
+            handSize -= 2;
+        }
         if (handSize < 2) {
             handSize = maxHandSize;
         }
@@ -228,7 +264,13 @@ public class Game {
     /**
      * Getters/Setters
      */
-    public Hand getPlayerHand(String username) { return colorHandMap.get(getPlayerColor(username)); }
+    public Hand getPlayerHand(String username) {
+        Types.Color color = getPlayerColor(username);
+        if (color == null) {
+            return null;
+        }
+        return colorHandMap.get(color);
+    }
     public Types.Color getPlayerColor(String username) { return playerColorMap.get(username); }
     public Board getBoard() { return board; }
     public List<String> getPlayers() { return players; }
@@ -236,9 +278,17 @@ public class Game {
     public void setStatus(Types.GameStatus status) { this.status = status; }
     public void setLastCard(Card lastCard) { this.lastCard = lastCard; }
     public Card getLastCard() { return lastCard; }
-    public Types.Color getCurrentPlayerColor() { return playerColorMap.get(players.get(currentPlayerIndex)); }
+    @JsonIgnore
+    public Types.Color getCurrentPlayerColor() {
+        if (players.isEmpty() || currentPlayerIndex >= players.size()) {
+            return null;
+        }
+        String currentPlayer = players.get(currentPlayerIndex);
+        return playerColorMap.get(currentPlayer);
+    }
     public void setWinner(String winner) { this.winner = winner; }
     public String getWinner() { return winner; }
+    @JsonIgnore
     public int getNumCurrPlayers() { return players.size(); }
     public Map<String, Types.Color> getPlayerColorMap() { return playerColorMap; }
     public void incrementPlayerTurns(String username) {

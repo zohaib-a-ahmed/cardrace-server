@@ -3,21 +3,27 @@ package com.cardrace.cardrace_server.model.game;
 import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class Board {
-
+    @JsonProperty
     public final Map<Integer, Marble> marbles;
+    @JsonProperty
     public final Integer[] spaces;
+    @JsonProperty
     public final Map<Types.Color, Integer[]> safeZones;
+    @JsonProperty
     public final Map<Types.Color, List<Integer>> reserves;
+    @JsonProperty
     public final Map<Types.Color, Integer> startPositions;
+    @JsonProperty
     private final int boardSize;
     private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
-
     public Board(List<Types.Color> colors) {
         this.boardSize = colors.size() * 16;
         this.spaces = new Integer[boardSize];
@@ -27,6 +33,23 @@ public class Board {
         this.marbles = new HashMap<>();
 
         initializeBoard(colors);
+    }
+
+    @JsonCreator
+    public Board(
+            @JsonProperty("marbles") Map<Integer, Marble> marbles,
+            @JsonProperty("spaces") Integer[] spaces,
+            @JsonProperty("safeZones") Map<Types.Color, Integer[]> safeZones,
+            @JsonProperty("reserves") Map<Types.Color, List<Integer>> reserves,
+            @JsonProperty("startPositions") Map<Types.Color, Integer> startPositions,
+            @JsonProperty("boardSize") int boardSize
+    ) {
+        this.marbles = marbles;
+        this.spaces = spaces;
+        this.safeZones = safeZones;
+        this.reserves = reserves;
+        this.startPositions = startPositions;
+        this.boardSize = boardSize;
     }
 
     private void initializeBoard(List<Types.Color> colors) {

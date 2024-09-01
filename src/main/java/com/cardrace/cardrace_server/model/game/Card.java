@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Card {
+    @JsonProperty
     public final Types.CardValue cardValue;
+    @JsonProperty
     public final Types.CardSuit cardSuit;
 
     @JsonCreator

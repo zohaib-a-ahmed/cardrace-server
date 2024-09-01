@@ -70,7 +70,7 @@ public class SocketIOEventHandler {
                     client.set("username", username);
                     client.set("gameId", gameId);
                     client.joinRoom(gameId);
-                    logger.info("User {} joined game {}", username, gameId);
+                    logger.info("User {} joined room {}", username, gameId);
 
                     if (!gameService.doesPlayerExist(gameId, username)) {
                         try {
@@ -100,8 +100,16 @@ public class SocketIOEventHandler {
 
             logger.info("Client disconnected: " + client.getSessionId() + ", username: " + username);
 
-            gameService.leaveGame(gameId, username);
-            broadcastGameState(gameId);
+            if (gameService.doesGameExist(gameId)) {
+                gameService.leaveGame(gameId, username);
+                logger.info("broadcasting game state after disconnect!");
+                broadcastGameState(gameId);
+                if (gameService.isTerminated(gameId)) {
+                    logger.info("game is showing as terminated");
+                    gameService.deleteGame(gameId);
+                    logger.info("deleted game");
+                }
+            }
             client.disconnect();
         };
     }
@@ -112,25 +120,28 @@ public class SocketIOEventHandler {
             String gameId = client.get("gameId");
             logger.info("Received move from user {} in game {}: {}", username, gameId, data.toString());
 
-            if (!gameService.hasCompleted(gameId)) {
-                try {
-                    gameService.isValidMoveStructure(data);
-                } catch (InvalidMoveFormatException e) {
-                    client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
-                    return;
-                }
-
-                try {
-                    gameService.applyMove(gameId, data);
-                    if (gameService.hasCompleted(gameId)) {
-                        logger.info("Game Finished!");
-                        handlePlayerStatUpdates(gameId);
-                        logger.info("handled player stat updates!");
+            if (gameService.doesGameExist(gameId)) {
+                if (!gameService.hasCompleted(gameId)) {
+                    try {
+                        gameService.isValidMoveStructure(data);
+                    } catch (InvalidMoveFormatException e) {
+                        client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
+                        return;
                     }
-                    broadcastGameState(gameId);
-                } catch (IllegalMoveException e) {
-                    logger.error("Error processing move", e);
-                    client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
+
+                    try {
+                        gameService.applyMove(gameId, data);
+                        broadcastGameState(gameId);
+                        if (gameService.hasCompleted(gameId)) {
+                            logger.info("Game Finished!");
+                            handlePlayerStatUpdates(gameId);
+                            gameService.deleteGame(gameId);
+                            logger.info("handled player stat updates!");
+                        }
+                    } catch (IllegalMoveException e) {
+                        logger.error("Error processing move", e);
+                        client.sendEvent("moveResult", "Error processing move: " + e.getMessage());
+                    }
                 }
             }
         };
@@ -152,6 +163,8 @@ public class SocketIOEventHandler {
     }
 
     private void broadcastGameState(String gameId) {
+        logger.info("broadcasting game state!");
+        if (gameService.isTerminated(gameId)) { logger.info("which is terminated!"); }
         for (SocketIOClient client : server.getRoomOperations(gameId).getClients()) {
             sendGameState(client);
         }

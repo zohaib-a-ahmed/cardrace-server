@@ -1,10 +1,19 @@
 package com.cardrace.cardrace_server.model.game;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public final class Types {
-
     public enum CardSuit {
         HEARTS, DIAMONDS, CLUBS, SPADES, JOKER
     }
@@ -20,7 +29,28 @@ public final class Types {
         A, B, C, D
     }
 
-    public enum Color { RED, BLUE, GREEN, YELLOW, PURPLE, ORANGE }
+
+    @JsonDeserialize(using = ColorDeserializer.class)
+    public enum Color {
+        RED, BLUE, GREEN, YELLOW, PURPLE, ORANGE;
+
+        @JsonCreator
+        public static Color fromValue(String value) {
+            return valueOf(value.toUpperCase());
+        }
+    }
+
+    private static class ColorDeserializer extends JsonDeserializer<Color> {
+        @Override
+        public Color deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            String value = p.getValueAsString();
+            if (value == null) {
+                return null;
+            }
+            return Color.fromValue(value);
+        }
+    }
+
 
     public enum GameStatus {
         WAITING, IN_PROGRESS, COMPLETE, TERMINATED

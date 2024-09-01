@@ -1,19 +1,29 @@
 package com.cardrace.cardrace_server.model.game;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Objects;
 
 public class Marble {
-
+    @JsonProperty
     private Types.MarbleState state;
+    @JsonProperty
     private final Types.Color color;
+    @JsonProperty
     private final Types.MarbleType type;
     public final int id;
 
-    public Marble (int id, Types.Color color, Types.MarbleType type, Types.MarbleState state) {
+    @JsonCreator
+    public Marble(
+            @JsonProperty("id") int id,
+            @JsonProperty("color") Types.Color color,
+            @JsonProperty("type") Types.MarbleType type,
+            @JsonProperty("state") Types.MarbleState state) {
+        this.id = id;
         this.color = color;
         this.type = type;
         this.state = state;
-        this.id = id;
     }
 
     public Types.Color getColor() {

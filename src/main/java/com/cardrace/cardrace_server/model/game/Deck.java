@@ -4,6 +4,9 @@ import java.util.Collections;
 import java.util.Random;
 
 import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,9 +36,11 @@ public class Deck {
             Types.CardValue.KING,
             Types.CardValue.ACE
     };
-
+    @JsonProperty
     private int numDecks;
+    @JsonProperty
     private Stack<Card> playingDeck;
+    @JsonIgnore
     private Random random;
 
     /**
@@ -44,11 +49,20 @@ public class Deck {
      *
      * @param numDecks The number of standard 52-card decks to include
      */
-    public Deck(int numDecks) {
+    @JsonCreator
+    public Deck(@JsonProperty int numDecks) {
         this.numDecks = numDecks;
         this.playingDeck = new Stack<>();
         this.random = new Random();
         shuffle();
+    }
+
+    @JsonCreator
+    public Deck(
+            @JsonProperty("numDecks") int numDecks,
+            @JsonProperty("playingDeck") Stack<Card> playingDeck) {
+        this.numDecks = numDecks;
+        this.playingDeck = playingDeck;
     }
 
     /**

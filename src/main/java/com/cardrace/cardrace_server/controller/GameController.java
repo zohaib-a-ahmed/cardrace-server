@@ -31,6 +31,7 @@ public class GameController {
 
     @PostMapping("/create")
     public ResponseEntity<String> createGame(@RequestParam String gameName, @RequestParam Integer numPlayers) {
+        logger.info("attempting to create game!");
         String gameId = gameService.createGame(gameName, numPlayers);
         logger.info("Game created with UUID: {}", gameId);
         return ResponseEntity.ok(gameId);
