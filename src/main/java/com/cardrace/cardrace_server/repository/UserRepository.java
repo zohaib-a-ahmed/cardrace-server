@@ -57,14 +57,11 @@ public class UserRepository {
     }
     public void incrementGamesPlayed(String username) {
         try {
-            logger.info("Attempting to increment games played for user: {}", username);
             Optional<User> userOptional = findByUsername(username);
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                logger.info("Found user. Current games played: {}", user.getGamesPlayed());
                 user.setGamesPlayed(user.getGamesPlayed() + 1);
                 dynamoDBMapper.save(user);
-                logger.info("Games played incremented. New value: {}", user.getGamesPlayed());
             } else {
                 logger.warn("User not found for username: {}", username);
             }
@@ -76,14 +73,11 @@ public class UserRepository {
 
     public void incrementWins(String username) {
         try {
-            logger.info("Attempting to increment wins for user: {}", username);
             Optional<User> userOptional = findByUsername(username);
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                logger.info("Found user. Current wins: {}", user.getWins());
                 user.setWins(user.getWins() + 1);
                 dynamoDBMapper.save(user);
-                logger.info("Wins incremented. New value: {}", user.getWins());
             } else {
                 logger.warn("User not found for username: {}", username);
             }
@@ -95,14 +89,11 @@ public class UserRepository {
 
     public void incrementTurns(String username, int turnsTaken) {
         try {
-            logger.info("Attempting to increment turns for user: {}", username);
             Optional<User> userOptional = findByUsername(username);
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                logger.info("Found user. Current turns: {}", user.getTurns());
                 user.setTurns(user.getTurns() + turnsTaken);
                 dynamoDBMapper.save(user);
-                logger.info("Turns incremented. New value: {}", user.getTurns());
             } else {
                 logger.warn("User not found for username: {}", username);
             }

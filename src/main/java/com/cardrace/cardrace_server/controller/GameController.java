@@ -31,7 +31,6 @@ public class GameController {
 
     @PostMapping("/create")
     public ResponseEntity<String> createGame(@RequestParam String gameName, @RequestParam Integer numPlayers) {
-        logger.info("attempting to create game!");
         String gameId = gameService.createGame(gameName, numPlayers);
         logger.info("Game created with UUID: {}", gameId);
         return ResponseEntity.ok(gameId);
@@ -40,7 +39,6 @@ public class GameController {
     @GetMapping("/available/{gameId}")
     public ResponseEntity<Boolean> checkGameAvailability(@PathVariable String gameId) {
         boolean isAvailable = gameService.inLobby(gameId);
-        logger.info("Check availability for gameId: {}", gameId);
         return ResponseEntity.ok(isAvailable);
     }
 }

@@ -1,12 +1,10 @@
 package com.cardrace.cardrace_server.model.game;
 
-import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 import java.util.*;
 
@@ -23,7 +21,7 @@ public class Board {
     public final Map<Types.Color, Integer> startPositions;
     @JsonProperty
     private final int boardSize;
-    private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
+
     public Board(List<Types.Color> colors) {
         this.boardSize = colors.size() * 16;
         this.spaces = new Integer[boardSize];
@@ -106,11 +104,9 @@ public class Board {
     public int findMarble(int marbleId) throws NoSuchElementException {
         for (int i = 0; i < boardSize; i++) {
             if (spaces[i] != null && spaces[i].equals(marbleId)) {
-                logger.info("Found marble {}!", marbleId);
                 return i;
             }
         }
-        logger.info("Could not find {}", marbleId);
         throw new NoSuchElementException("Marble not in play!");
     }
 
@@ -131,8 +127,6 @@ public class Board {
     }
 
     public void moveMarble(int marbleId, int distance, boolean bully) throws IllegalMoveException {
-
-        logger.info("Marble ID: {} | Distance: {}", marbleId, distance);
 
         int startPosition = findMarble(marbleId);
         int currentPosition = startPosition;
@@ -164,7 +158,6 @@ public class Board {
             if (occupyingMarbleId != null) {
                 Marble occupyingMarble = marbles.get(occupyingMarbleId);
                 if (bully && occupyingMarble.getState() != Types.MarbleState.PROTECTED) {
-                    logger.info("eating this marble: {}", occupyingMarbleId);
                     sendToReserve(occupyingMarbleId);
                     spaces[currentPosition] = null;
                 }
@@ -172,7 +165,6 @@ public class Board {
         }
         Integer landingMarbleId = spaces[currentPosition];
         if (landingMarbleId != null) {
-            logger.info("landing marble : {}", spaces[currentPosition]);
             Marble landingMarble = marbles.get(landingMarbleId);
             if (landingMarble.getState() == Types.MarbleState.PROTECTED) {
                 throw new IllegalMoveException("Cannot land on a protected marble");
@@ -180,13 +172,11 @@ public class Board {
                 sendToReserve(landingMarbleId);
             }
         }
-        logger.info("Marble has moved from position {} to position {}", startPosition, currentPosition);
         spaces[startPosition] = null;
         spaces[currentPosition] = marbleId;
     }
 
     private void sendToReserve(int marbleId) {
-        logger.info("{} sent to reserve!", marbleId);
         Marble marble = marbles.get(marbleId);
         reserves.get(marble.getColor()).add(marbleId);
     }

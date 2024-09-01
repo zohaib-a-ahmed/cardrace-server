@@ -1,11 +1,9 @@
 package com.cardrace.cardrace_server.controller;
 
-import com.cardrace.cardrace_server.dto.EarlyTerminationDTO;
 import com.cardrace.cardrace_server.dto.MoveDTO;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 import com.cardrace.cardrace_server.exceptions.InvalidMoveFormatException;
 import com.cardrace.cardrace_server.exceptions.PlayerLimitException;
-import com.cardrace.cardrace_server.security.RequestLoggingFilter;
 import com.cardrace.cardrace_server.service.GameService;
 import com.cardrace.cardrace_server.service.JwtService;
 import com.cardrace.cardrace_server.service.UserService;
@@ -15,17 +13,12 @@ import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
 import com.corundumstudio.socketio.HandshakeData;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import org.apache.tomcat.util.json.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 
 @Component
@@ -70,8 +63,6 @@ public class SocketIOEventHandler {
                     client.set("username", username);
                     client.set("gameId", gameId);
                     client.joinRoom(gameId);
-                    logger.info("User {} joined room {}", username, gameId);
-
                     if (!gameService.doesPlayerExist(gameId, username)) {
                         try {
                             gameService.joinGame(gameId, username);
@@ -102,12 +93,9 @@ public class SocketIOEventHandler {
 
             if (gameService.doesGameExist(gameId)) {
                 gameService.leaveGame(gameId, username);
-                logger.info("broadcasting game state after disconnect!");
                 broadcastGameState(gameId);
                 if (gameService.isTerminated(gameId)) {
-                    logger.info("game is showing as terminated");
                     gameService.deleteGame(gameId);
-                    logger.info("deleted game");
                 }
             }
             client.disconnect();
@@ -118,7 +106,6 @@ public class SocketIOEventHandler {
         return (client, data, ackSender) -> {
             String username = client.get("username");
             String gameId = client.get("gameId");
-            logger.info("Received move from user {} in game {}: {}", username, gameId, data.toString());
 
             if (gameService.doesGameExist(gameId)) {
                 if (!gameService.hasCompleted(gameId)) {
@@ -133,10 +120,8 @@ public class SocketIOEventHandler {
                         gameService.applyMove(gameId, data);
                         broadcastGameState(gameId);
                         if (gameService.hasCompleted(gameId)) {
-                            logger.info("Game Finished!");
                             handlePlayerStatUpdates(gameId);
                             gameService.deleteGame(gameId);
-                            logger.info("handled player stat updates!");
                         }
                     } catch (IllegalMoveException e) {
                         logger.error("Error processing move", e);
@@ -151,11 +136,9 @@ public class SocketIOEventHandler {
         Map<String, Integer> turnInformation = gameService.getPlayerTurnInformation(gameId);
         String winner = gameService.getGameWinner(gameId);
 
-        logger.info("Handling player stat update!");
         for (Map.Entry<String, Integer> entry : turnInformation.entrySet()) {
             String player = entry.getKey();
 
-            logger.info("doing user service stuff!");
             userService.incrementGamesPlayed(player);
             userService.incrementTurns(player, entry.getValue());
             if (Objects.equals(player, winner)) { userService.incrementWins(player); }
@@ -163,8 +146,6 @@ public class SocketIOEventHandler {
     }
 
     private void broadcastGameState(String gameId) {
-        logger.info("broadcasting game state!");
-        if (gameService.isTerminated(gameId)) { logger.info("which is terminated!"); }
         for (SocketIOClient client : server.getRoomOperations(gameId).getClients()) {
             sendGameState(client);
         }
