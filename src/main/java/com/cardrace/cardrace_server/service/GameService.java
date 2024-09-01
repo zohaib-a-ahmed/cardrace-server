@@ -1,6 +1,5 @@
 package com.cardrace.cardrace_server.service;
 
-import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
 import com.cardrace.cardrace_server.dto.*;
 import com.cardrace.cardrace_server.exceptions.IllegalMoveException;
 import com.cardrace.cardrace_server.exceptions.InvalidMoveFormatException;
@@ -12,19 +11,23 @@ import com.cardrace.cardrace_server.repository.RedisGameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class GameService {
     @Autowired
     private final RedisGameRepository gameRepository;
-    private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
 
     public GameService(RedisGameRepository gameRepository) {
         this.gameRepository = gameRepository;
     }
 
+    /**
+     * Creates a new game with the given name and number of players.
+     *
+     * @param gameName   The name of the game
+     * @param numPlayers The number of players for the game
+     * @return A unique game ID for the created game
+     */
     public String createGame(String gameName, Integer numPlayers) {
         String gameId = UUID.randomUUID().toString().substring(0, 6);
 
@@ -33,6 +36,13 @@ public class GameService {
         return gameId;
     }
 
+    /**
+     * Adds a player to an existing game.
+     *
+     * @param gameId   The ID of the game to join
+     * @param playerId The ID of the player joining the game
+     * @throws PlayerLimitException If the game is full or not in waiting status
+     */
     public void joinGame(String gameId, String playerId) throws PlayerLimitException {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -48,6 +58,12 @@ public class GameService {
         gameRepository.save(gameId, game);
     }
 
+    /**
+     * Removes a player from a game. If the game is in progress, it will be terminated early.
+     *
+     * @param gameId   The ID of the game
+     * @param playerId The ID of the player leaving the game
+     */
     public void leaveGame(String gameId, String playerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -62,6 +78,11 @@ public class GameService {
         }
     }
 
+    /**
+     * Deletes a game from the repository.
+     *
+     * @param gameId The ID of the game to delete
+     */
     public void deleteGame(String gameId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -69,6 +90,13 @@ public class GameService {
         gameRepository.delete(gameId);
     }
 
+    /**
+     * Applies a move to the game state.
+     *
+     * @param gameId The ID of the game
+     * @param move   The move to apply
+     * @throws IllegalMoveException If the move is not allowed
+     */
     public void applyMove(String gameId, MoveDTO move) throws IllegalMoveException {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -95,6 +123,12 @@ public class GameService {
         gameRepository.save(gameId, game);
     }
 
+    /**
+     * Validates the structure of a move.
+     *
+     * @param move The move to validate
+     * @throws InvalidMoveFormatException If the move structure is invalid
+     */
     public void isValidMoveStructure(MoveDTO move) throws InvalidMoveFormatException {
 
         Card actingCard;
@@ -141,21 +175,46 @@ public class GameService {
         }
     }
 
+    /**
+     * Checks if a game is in the lobby (waiting) state.
+     *
+     * @param gameId The ID of the game to check
+     * @return true if the game is in the lobby, false otherwise
+     */
     public boolean inLobby(String gameId) {
         Optional<Game> game = gameRepository.findById(gameId);
         return game.isPresent() && game.get().getStatus() == Types.GameStatus.WAITING;
     }
 
+    /**
+     * Checks if a game has been terminated early.
+     *
+     * @param gameId The ID of the game to check
+     * @return true if the game has been terminated, false otherwise
+     */
     public boolean isTerminated(String gameId) {
         Optional<Game> game = gameRepository.findById(gameId);
         return game.isPresent() && game.get().getStatus() == Types.GameStatus.TERMINATED;
     }
 
+    /**
+     * Checks if a game has been completed normally.
+     *
+     * @param gameId The ID of the game to check
+     * @return true if the game has been completed, false otherwise
+     */
     public boolean hasCompleted(String gameId) {
         Optional<Game> game = gameRepository.findById(gameId);
         return game.isPresent() && game.get().getStatus() == Types.GameStatus.COMPLETE;
     }
 
+    /**
+     * Checks if a player exists in a game.
+     *
+     * @param gameId   The ID of the game
+     * @param playerId The ID of the player to check
+     * @return true if the player exists in the game, false otherwise
+     */
     public boolean doesPlayerExist(String gameId, String playerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -170,6 +229,12 @@ public class GameService {
         return game.getWinner();
     }
 
+    /**
+     * Terminates a game early.
+     *
+     * @param gameId   The ID of the game to terminate
+     * @param playerId The ID of the player causing the termination
+     */
     public void earlyTerminate(String gameId, String playerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -179,6 +244,12 @@ public class GameService {
         gameRepository.save(gameId, game);
     }
 
+    /**
+     * Retrieves the turn information for all players in a game.
+     *
+     * @param gameId The ID of the game
+     * @return A map of player IDs to their turn counts
+     */
     public Map<String, Integer> getPlayerTurnInformation(String gameId){
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -191,6 +262,13 @@ public class GameService {
         return turnInformation;
     }
 
+    /**
+     * Retrieves the game state specific to a player.
+     *
+     * @param gameId   The ID of the game
+     * @param playerId The ID of the player
+     * @return A DTO containing the game state specific to the player
+     */
     public SpecificGameStateDTO getPlayerSpecificGameState(String gameId, String playerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -198,6 +276,12 @@ public class GameService {
         return new SpecificGameStateDTO(game.gameName, game.getBoard(), game.getPlayers(), game.getPlayerColorMap(), game.getCurrentPlayerColor(), game.getLastCard(), game.getStatus(), game.getWinner(), playerId, game.getPlayerHand(playerId), game.getPlayerColor(playerId));
     }
 
+    /**
+     * Retrieves the game state for a game in the waiting state.
+     *
+     * @param gameId The ID of the game
+     * @return A DTO containing the waiting game state
+     */
     public WaitingGameStateDTO getWaitingGameState(String gameId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -205,6 +289,12 @@ public class GameService {
         return new WaitingGameStateDTO(game.getStatus(), game.gameName, game.getPlayers());
     }
 
+    /**
+     * Retrieves the game state for a terminated game.
+     *
+     * @param gameId The ID of the game
+     * @return A DTO containing the terminated game state
+     */
     public EarlyTerminationDTO getTerminatedGameState(String gameId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
@@ -212,6 +302,12 @@ public class GameService {
         return new EarlyTerminationDTO(game.getWinner(), game.getStatus());
     }
 
+    /**
+     * Checks if a game exists.
+     *
+     * @param gameId The ID of the game to check
+     * @return true if the game exists, false otherwise
+     */
     public boolean doesGameExist(String gameId) {
         Optional<Game> game = gameRepository.findById(gameId);
         return game.isPresent();

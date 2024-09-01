@@ -38,6 +38,10 @@ public class SocketIOEventHandler {
         this.userService = userService;
     }
 
+    /**
+     * Initializes the SocketIO event listeners after the bean has been constructed.
+     * Sets up listeners for connection, disconnection, and move events.
+     */
     @PostConstruct
     public void init() {
         server.addConnectListener(onConnected());
@@ -45,6 +49,13 @@ public class SocketIOEventHandler {
         server.addEventListener("move", MoveDTO.class, onMakeMove());
     }
 
+    /**
+     * Handles client connection to the SocketIO server.
+     * Authenticates the user using JWT, joins them to the appropriate game room,
+     * and handles game joining logic.
+     *
+     * @return ConnectListener that processes new client connections
+     */
     private ConnectListener onConnected() {
         return (client) -> {
             HandshakeData handshakeData = client.getHandshakeData();
@@ -59,7 +70,6 @@ public class SocketIOEventHandler {
             try {
                 String username = jwtService.getUsernameFromToken(token);
                 if (jwtService.validateToken(token, username)) {
-
                     client.set("username", username);
                     client.set("gameId", gameId);
                     client.joinRoom(gameId);
@@ -83,6 +93,12 @@ public class SocketIOEventHandler {
         };
     }
 
+    /**
+     * Handles client disconnection from the SocketIO server.
+     * Manages game leaving logic, updates game state, and cleans up terminated games.
+     *
+     * @return DisconnectListener that processes client disconnections
+     */
     private DisconnectListener onDisconnected() {
         return (client) -> {
             HandshakeData handshakeData = client.getHandshakeData();
@@ -102,6 +118,13 @@ public class SocketIOEventHandler {
         };
     }
 
+    /**
+     * Handles move events from clients.
+     * Validates moves, applies them to the game state, broadcasts updated game state,
+     * and manages game completion logic including player stat updates.
+     *
+     * @return DataListener that processes move events
+     */
     private DataListener<MoveDTO> onMakeMove() {
         return (client, data, ackSender) -> {
             String username = client.get("username");
@@ -132,6 +155,12 @@ public class SocketIOEventHandler {
         };
     }
 
+    /**
+     * Updates player statistics after a game has completed.
+     * Increments games played and turns for all players, and increments wins for the winner.
+     *
+     * @param gameId The ID of the completed game
+     */
     private void handlePlayerStatUpdates(String gameId) {
         Map<String, Integer> turnInformation = gameService.getPlayerTurnInformation(gameId);
         String winner = gameService.getGameWinner(gameId);
@@ -145,11 +174,23 @@ public class SocketIOEventHandler {
         }
     }
 
+    /**
+     * Broadcasts the current game state to all clients in a specific game room.
+     *
+     * @param gameId The ID of the game whose state is to be broadcast
+     */
     private void broadcastGameState(String gameId) {
         for (SocketIOClient client : server.getRoomOperations(gameId).getClients()) {
             sendGameState(client);
         }
     }
+
+    /**
+     * Sends the appropriate game state to a specific client based on the current game status.
+     * This could be a waiting state, terminated state, or player-specific game state.
+     *
+     * @param client The SocketIOClient to send the game state to
+     */
     private void sendGameState(SocketIOClient client) {
         String username = client.get("username");
         String gameId = client.get("gameId");
