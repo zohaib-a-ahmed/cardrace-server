@@ -32,7 +32,6 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest signupRequest) {
-        logger.info("Received signup request for user: {}", signupRequest.getUsername());
         AuthResponse response = authService.registerUser(signupRequest);
         logger.info("User registered successfully: {}", signupRequest.getUsername());
         return ResponseEntity.ok(response);
@@ -40,7 +39,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest loginRequest) {
-        logger.info("Received login request for user: {}", loginRequest.getUsername());
         AuthResponse response = authService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
         logger.info("Login successful for user: {}", loginRequest.getUsername());
         return ResponseEntity.ok(response);

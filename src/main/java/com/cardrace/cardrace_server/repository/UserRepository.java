@@ -4,6 +4,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.cardrace.cardrace_server.controller.SocketIOEventHandler;
 import com.cardrace.cardrace_server.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -13,10 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Repository
 public class UserRepository {
 
     private final DynamoDBMapper dynamoDBMapper;
+    private static final Logger logger = LoggerFactory.getLogger(SocketIOEventHandler.class);
 
     @Autowired
     public UserRepository(DynamoDBMapper dynamoDBMapper) {
@@ -50,27 +55,51 @@ public class UserRepository {
         }
         return Optional.of(users.get(0));
     }
-    public void incrementGamesPlayed(String userId) {
-        User user = dynamoDBMapper.load(User.class, userId);
-        if (user != null) {
-            user.setGamesPlayed(user.getGamesPlayed() + 1);
-            dynamoDBMapper.save(user);
+    public void incrementGamesPlayed(String username) {
+        try {
+            Optional<User> userOptional = findByUsername(username);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                user.setGamesPlayed(user.getGamesPlayed() + 1);
+                dynamoDBMapper.save(user);
+            } else {
+                logger.warn("User not found for username: {}", username);
+            }
+        } catch (Exception e) {
+            logger.error("Error incrementing games played: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
-    public void incrementWins(String userId) {
-        User user = dynamoDBMapper.load(User.class, userId);
-        if (user != null) {
-            user.setWins(user.getWins() + 1);
-            dynamoDBMapper.save(user);
+    public void incrementWins(String username) {
+        try {
+            Optional<User> userOptional = findByUsername(username);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                user.setWins(user.getWins() + 1);
+                dynamoDBMapper.save(user);
+            } else {
+                logger.warn("User not found for username: {}", username);
+            }
+        } catch (Exception e) {
+            logger.error("Error incrementing wins: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
-    public void incrementTurns(String userId, int turnsTaken) {
-        User user = dynamoDBMapper.load(User.class, userId);
-        if (user != null) {
-            user.setTurns(user.getTurns() + turnsTaken);
-            dynamoDBMapper.save(user);
+    public void incrementTurns(String username, int turnsTaken) {
+        try {
+            Optional<User> userOptional = findByUsername(username);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                user.setTurns(user.getTurns() + turnsTaken);
+                dynamoDBMapper.save(user);
+            } else {
+                logger.warn("User not found for username: {}", username);
+            }
+        } catch (Exception e) {
+            logger.error("Error incrementing turns: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
